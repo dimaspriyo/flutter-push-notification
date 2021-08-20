@@ -1,16 +1,6 @@
-import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
 
-Future<void> _messageHandler(RemoteMessage message) async {
-  print('background message ${message.notification!.body}');
-}
-
-
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
-  FirebaseMessaging.onBackgroundMessage(_messageHandler);
+void main() {
   runApp(MyApp());
 }
 
@@ -56,43 +46,6 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-
-  late FirebaseMessaging messaging;
-  @override
-  void initState() {
-    super.initState();
-    messaging = FirebaseMessaging.instance;
-    messaging.getToken().then((value) {
-      print(value);
-    });
-
-    FirebaseMessaging.onMessage.listen((RemoteMessage event) {
-      print("message recieved");
-      print(event.notification!.body);
-      showDialog(
-          context: context,
-          builder: (BuildContext context) {
-            return AlertDialog(
-              title: Text("Notification"),
-              content: Text(event.notification!.body!),
-              actions: [
-                TextButton(
-                  child: Text("Ok"),
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                  },
-                )
-              ],
-            );
-          });
-    });
-    FirebaseMessaging.onMessageOpenedApp.listen((message) {
-      print('Message clicked!');
-    });
-  }
-
-
-
   int _counter = 0;
 
   void _incrementCounter() {
@@ -140,13 +93,35 @@ class _MyHomePageState extends State<MyHomePage> {
           // horizontal).
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            Text(
-              'You have pushed the button this many times:',
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                ElevatedButton(
+                    onPressed: () {},
+                    child: Text("Register Your Device First !")),
+                SizedBox(width: 10),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [Text("Status : "), Text("Registered")],
+                )
+              ],
             ),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headline4,
+            SizedBox(height: 20),
+            TextField(
+              decoration: InputDecoration(
+                  border: OutlineInputBorder(),
+                  hintText: 'Push Notification Title ...'),
             ),
+            SizedBox(height: 10),
+            TextField(
+              decoration: InputDecoration(
+                  border: OutlineInputBorder(),
+                  hintText: 'Push Notification Message ...'),
+            ),
+            SizedBox(height: 20),
+            ElevatedButton(onPressed: () {}, child: Text("Send Notification")),
           ],
         ),
       ),
