@@ -1,4 +1,40 @@
+import 'dart:async';
+import 'dart:convert';
+
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+
+Future<bool> sendPushNotification(String title, String body,
+    FirebaseMessaging messaging) async {
+  String token = "";
+  await messaging.getToken().then((value) =>
+  {
+    if (value != null) {token = value}
+  });
+
+  print("Token:" + token);
+  final response = await http.post(Uri.parse("http://192.168.1.24:8080/send"),
+      headers: <String, String>{
+        'Content-Type': 'application/json; charset=UTF-8',
+      },
+      body: jsonEncode(<String, String>{
+        "device_token": token,
+        "title": title,
+        "body": body
+      }));
+
+  bool result = false;
+  if (response.statusCode == 200) {
+    result = true;
+  } else {
+    throw Exception("System Error");
+  }
+
+  return result;
+}
+
 
 void main() {
   runApp(MyApp());
@@ -46,6 +82,42 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+  late FirebaseMessaging messaging;
+  late FirebaseApp firebaseApp;
+
+  final titleController = TextEditingController();
+  final bodyController = TextEditingController();
+
+  void initFirebase() async {
+    firebaseApp = await Firebase.initializeApp();
+
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+      print("Message Received");
+
+      showDialog(context: context, builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text(message.notification!.title!),
+          content: Text(message.notification!.body!),
+          actions: [
+            TextButton(
+              child: Text("Ok"),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            )
+          ],
+
+        );
+      });
+    });
+  }
+
+  @override
+  void initState() {
+    initFirebase();
+    messaging = FirebaseMessaging.instance;
+  }
+
   int _counter = 0;
 
   void _incrementCounter() {
@@ -93,43 +165,29 @@ class _MyHomePageState extends State<MyHomePage> {
           // horizontal).
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                ElevatedButton(
-                    onPressed: () {},
-                    child: Text("Register Your Device First !")),
-                SizedBox(width: 10),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [Text("Status : "), Text("Registered")],
-                )
-              ],
-            ),
             SizedBox(height: 20),
             TextField(
+              controller: titleController,
               decoration: InputDecoration(
                   border: OutlineInputBorder(),
                   hintText: 'Push Notification Title ...'),
             ),
             SizedBox(height: 10),
             TextField(
+              controller: bodyController,
               decoration: InputDecoration(
                   border: OutlineInputBorder(),
                   hintText: 'Push Notification Message ...'),
             ),
             SizedBox(height: 20),
-            ElevatedButton(onPressed: () {}, child: Text("Send Notification")),
+            ElevatedButton(
+                onPressed: () {
+                  sendPushNotification(titleController.text, bodyController.text, messaging);
+                },
+                child: Text("Send Notification")),
           ],
         ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
+      ),// This trailing comma makes auto-formatting nicer for build methods.
     );
   }
 }
